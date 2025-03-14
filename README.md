@@ -12,7 +12,7 @@ A simple IoT project that demonstrates MQTT communication between a web interfac
     </tr>
     <tr>
       <td><img src="image.png" alt="MQTT Light Control Web Interface" width="400"/></td>
-      <td><img src="image-1" alt="MQTT Light Control Python Interface" width="400"/></td>
+      <td><img src="image-1.png" alt="MQTT Light Control Python Interface" width="400"/></td>
     </tr>
   </table>
 </div>
