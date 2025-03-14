@@ -54,8 +54,8 @@ Before running this project, you need:
 
 1. **Clone the repository**:
    ```
-   git clone https://github.com/yourusername/mqtt-light-control.git
-   cd mqtt-light-control
+   git clone https://github.com/yourusername/Light-control-mqtt.git
+   cd Light-control-mqtt
    ```
 
 2. **Install Python dependencies**:
