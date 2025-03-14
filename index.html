@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Light Control</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f4f4f4;
+            color: #333;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #darkModeToggle {
+            border: none;
+            background: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Status Section */
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: red;
+            margin-right: 8px;
+            transition: background 0.3s ease-in-out;
+        }
+
+        .dot.connected {
+            background: green;
+        }
+
+        /* Light Bulb */
+        .light {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .bulb {
+            width: 80px;
+            height: 80px;
+            background: gray;
+            border-radius: 50%;
+            display: inline-block;
+            transition: background 0.3s, transform 0.3s;
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0);
+        }
+
+        .light-rays {
+            width: 120px;
+            height: 120px;
+            background: yellow;
+            border-radius: 50%;
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, transform 0.3s;
+        }
+
+        .bulb.on {
+            background: yellow;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+        }
+
+        .light-rays.on {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        /* Buttons */
+        .controls {
+            margin: 20px 0;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn.on {
+            background: green;
+            color: white;
+        }
+
+        .btn.off {
+            background: red;
+            color: white;
+        }
+
+        /* Indicator */
+        .indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: gray;
+            margin-right: 8px;
+            transition: background 0.3s;
+        }
+
+        .indicator-dot.on {
+            background: yellow;
+        }
+
+        .indicator-dot.off {
+            background: gray;
+        }
+
+        /* Dark Mode */
+        body.dark {
+            background: #121212;
+            color: white;
+        }
+
+        body.dark .container {
+            background: #1e1e1e;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark .bulb {
+            background: darkgray;
+        }
+
+        body.dark .bulb.on {
+            background: yellow;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Smart Light Control</h1>
+            <button id="darkModeToggle">🌙</button>
+        </div>
+
+        <div class="status">
+            <div id="connectionDot" class="dot"></div>
+            <p id="connectionText">Connecting...</p>
+        </div>
+
+        <div class="light">
+            <div id="bulb" class="bulb"></div>
+            <div id="lightRays" class="light-rays"></div>
+        </div>
+
+        <div class="controls">
+            <button id="turnOnButton" class="btn on">Turn On</button>
+            <button id="turnOffButton" class="btn off">Turn Off</button>
+        </div>
+
+        <div class="indicator">
+            <div id="statusIndicator" class="indicator-dot off"></div>
+            <p id="status">Waiting for connection...</p>
+        </div>
+    </div>
+
+    <script>
+        const brokerUrl = "wss://test.mosquitto.org:8081"; // Change if using another broker
+        const topic = "home/light";
+
+        const client = mqtt.connect(brokerUrl);
+
+        const connectionDot = document.getElementById("connectionDot");
+        const connectionText = document.getElementById("connectionText");
+        const bulb = document.getElementById("bulb");
+        const lightRays = document.getElementById("lightRays");
+        const statusIndicator = document.getElementById("statusIndicator");
+        const statusText = document.getElementById("status");
+        const turnOnButton = document.getElementById("turnOnButton");
+        const turnOffButton = document.getElementById("turnOffButton");
+        const darkModeToggle = document.getElementById("darkModeToggle");
+
+        // MQTT Connection
+        client.on("connect", () => {
+            console.log("Connected to MQTT broker");
+            connectionDot.classList.add("connected");
+            connectionText.textContent = "Connected";
+            statusIndicator.classList.add("on");
+            statusIndicator.classList.remove("off");
+            statusText.textContent = "Ready to control light";
+            client.subscribe(topic);
+        });
+
+        // Receiving MQTT Messages
+        client.on("message", (topic, message) => {
+            const payload = message.toString();
+            if (payload === "ON") {
+                bulb.classList.add("on");
+                lightRays.classList.add("on");
+                statusIndicator.classList.add("on");
+                statusText.textContent = "Light is ON";
+            } else if (payload === "OFF") {
+                bulb.classList.remove("on");
+                lightRays.classList.remove("on");
+                statusIndicator.classList.remove("on");
+                statusText.textContent = "Light is OFF";
+            }
+        });
+
+        // Send MQTT Messages
+        turnOnButton.addEventListener("click", () => client.publish(topic, "ON"));
+        turnOffButton.addEventListener("click", () => client.publish(topic, "OFF"));
+
+        // Dark Mode Toggle
+        darkModeToggle.addEventListener("click", () => document.body.classList.toggle("dark"));
+
+        // Handle Errors
+        client.on("error", () => connectionText.textContent = "Disconnected");
+        client.on("close", () => connectionText.textContent = "Disconnected");
+    </script>
+</body>
+</html>
